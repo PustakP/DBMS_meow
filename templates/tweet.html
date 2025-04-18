@@ -1,0 +1,125 @@
+{% extends "layout.html" %}
+
+{% block title %}Tweet | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Main tweet -->
+    <div class="tweet-card mb-6">
+        <div class="flex items-center mb-4">
+            <a href="{{ url_for('profile', username=tweet.username) }}" class="font-bold text-pink-500">@{{ tweet.username }}</a>
+            <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+        </div>
+        <p class="text-xl mb-6">{{ tweet.content }}</p>
+        
+        <!-- Tweet stats -->
+        <div class="border-t border-gray-700 pt-3 pb-3 mb-4">
+            <div class="flex space-x-6 text-gray-400 text-sm">
+                <div>
+                    <span class="font-bold text-white">{{ tweet.like_count or 0 }}</span> Likes
+                </div>
+                <div>
+                    <span class="font-bold text-white">{{ replies|length }}</span> Replies
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action buttons -->
+        <div class="flex justify-between text-gray-400 text-sm border-t border-gray-700 pt-3">
+            <!-- Like/Unlike button -->
+            {% if g.user %}
+                {% if is_liked %}
+                <form action="{{ url_for('unlike') }}" method="post" class="inline">
+                    <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                    <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
+                        <i data-feather="heart" class="w-5 h-5 mr-1 fill-current"></i>
+                        <span>Like</span>
+                    </button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('like') }}" method="post" class="inline">
+                    <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                    <button type="submit" class="flex items-center hover:text-pink-500">
+                        <i data-feather="heart" class="w-5 h-5 mr-1"></i>
+                        <span>Like</span>
+                    </button>
+                </form>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('login') }}" class="flex items-center hover:text-pink-500">
+                    <i data-feather="heart" class="w-5 h-5 mr-1"></i>
+                    <span>Like</span>
+                </a>
+            {% endif %}
+            
+            <!-- Reply button scrolls to reply form -->
+            <a href="#reply-form" class="flex items-center hover:text-blue-400">
+                <i data-feather="message-circle" class="w-5 h-5 mr-1"></i>
+                <span>Reply</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Reply form -->
+    {% if g.user %}
+    <div id="reply-form" class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h2 class="text-lg mb-4">Reply to @{{ tweet.username }}</h2>
+        <form action="{{ url_for('post_tweet') }}" method="post">
+            <input type="hidden" name="thread_id" value="{{ tweet.id }}">
+            <div class="mb-4">
+                <textarea name="content" placeholder="Tweet your reply" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" rows="3"></textarea>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="btn">Reply</button>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700 text-center">
+        <p class="mb-4">You need to be logged in to reply</p>
+        <a href="{{ url_for('login') }}" class="btn">Log in</a>
+    </div>
+    {% endif %}
+    
+    <!-- Replies -->
+    {% if replies %}
+    <h2 class="text-xl font-bold mb-4">Replies</h2>
+    <div class="space-y-4">
+        {% for reply in replies %}
+        <div class="tweet-card">
+            <div class="flex items-center mb-2">
+                <a href="{{ url_for('profile', username=reply.username) }}" class="font-bold text-pink-500">@{{ reply.username }}</a>
+                <div class="ml-2 text-gray-400 text-sm">{{ reply.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+            </div>
+            <p class="mb-3">{{ reply.content }}</p>
+            
+            <!-- Reply actions -->
+            <div class="flex text-gray-400 text-sm">
+                {% if g.user and db.is_post_liked(g.user.user_id, reply.id) %}
+                <form action="{{ url_for('unlike') }}" method="post" class="inline mr-4">
+                    <input type="hidden" name="post_id" value="{{ reply.id }}">
+                    <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
+                        <i data-feather="heart" class="w-4 h-4 mr-1 fill-current"></i>
+                        <span>{{ reply.like_count or 0 }}</span>
+                    </button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('like') }}" method="post" class="inline mr-4">
+                    <input type="hidden" name="post_id" value="{{ reply.id }}">
+                    <button type="submit" class="flex items-center hover:text-pink-500">
+                        <i data-feather="heart" class="w-4 h-4 mr-1"></i>
+                        <span>{{ reply.like_count or 0 }}</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center text-gray-400 py-8">
+        <p>No replies yet. Be the first to reply!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

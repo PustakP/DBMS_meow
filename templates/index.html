@@ -1,27 +1,74 @@
 {% extends "layout.html" %}
 
+{% block title %}Home | PinkBird{% endblock %}
+
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <form action="{{ url_for('post_tweet') }}" method="post" class="mb-8 bg-gray-800 p-4 rounded-lg">
+    <!-- Tweet form -->
+    <form action="{{ url_for('post_tweet') }}" method="post" class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
         <div class="mb-4">
-            <input type="text" name="user" placeholder="Username" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+            <textarea name="content" placeholder="What's happening?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" rows="3"></textarea>
         </div>
-        <div class="mb-4">
-            <textarea name="content" placeholder="What's happening?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500"></textarea>
+        <div class="flex justify-between items-center">
+            <div class="text-gray-400 text-sm">
+                <i data-feather="image" class="w-4 h-4 inline"></i> Image feature coming soon
+            </div>
+            <button type="submit" class="btn">Tweet</button>
         </div>
-        <button type="submit" class="btn">Tweet</button>
     </form>
 
+    <!-- Tweets -->
     <div class="space-y-4">
-        {% for tweet in tweets %}
-        <div class="tweet-card">
-            <div class="flex items-center mb-2">
-                <div class="font-bold text-pink-500">{{ tweet.user }}</div>
-                <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at }}</div>
+        {% if tweets %}
+            {% for tweet in tweets %}
+            <div class="tweet-card">
+                <div class="flex items-center mb-2">
+                    <a href="{{ url_for('profile', username=tweet.username) }}" class="font-bold text-pink-500">@{{ tweet.username }}</a>
+                    <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+                </div>
+                <p class="mb-3">{{ tweet.content }}</p>
+                
+                <!-- Action buttons -->
+                <div class="flex justify-between text-gray-400 text-sm">
+                    <div class="flex space-x-4">
+                        <!-- Reply button -->
+                        <a href="{{ url_for('view_tweet', tweet_id=tweet.id) }}" class="flex items-center hover:text-blue-400">
+                            <i data-feather="message-circle" class="w-4 h-4 mr-1"></i>
+                            <span>{{ tweet.reply_count or 0 }}</span>
+                        </a>
+                        
+                        <!-- Like/Unlike button -->
+                        {% if g.user and db.is_post_liked(g.user.user_id, tweet.id) %}
+                        <form action="{{ url_for('unlike') }}" method="post" class="inline">
+                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                            <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
+                                <i data-feather="heart" class="w-4 h-4 mr-1 fill-current"></i>
+                                <span>{{ tweet.like_count or 0 }}</span>
+                            </button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('like') }}" method="post" class="inline">
+                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                            <button type="submit" class="flex items-center hover:text-pink-500">
+                                <i data-feather="heart" class="w-4 h-4 mr-1"></i>
+                                <span>{{ tweet.like_count or 0 }}</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    
+                    {% if tweet.thread_id %}
+                    <a href="{{ url_for('view_tweet', tweet_id=tweet.thread_id) }}" class="text-blue-400 hover:underline">View thread</a>
+                    {% endif %}
+                </div>
             </div>
-            <p>{{ tweet.content }}</p>
-        </div>
-        {% endfor %}
+            {% endfor %}
+        {% else %}
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
+                <p class="mb-4 text-gray-400">Your feed is empty! Start by following some users or posting your first tweet.</p>
+                <a href="{{ url_for('explore') }}" class="btn">Explore PinkBird</a>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %} 

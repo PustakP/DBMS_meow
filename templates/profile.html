@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ profile_user.username }} | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Profile header -->
+    <div class="bg-gray-800 rounded-lg mb-6 overflow-hidden">
+        <!-- Profile banner -->
+        <div class="h-32 bg-pink-900"></div>
+        
+        <!-- Profile info -->
+        <div class="p-6 relative">
+            <!-- Profile picture -->
+            <div class="absolute -top-16 left-6 w-24 h-24 bg-gray-700 rounded-full border-4 border-gray-800 overflow-hidden">
+                {% if profile_user.profile_pic %}
+                <img src="{{ url_for('static', filename=profile_user.profile_pic) }}" alt="{{ profile_user.username }}" class="w-full h-full object-cover">
+                {% else %}
+                <div class="flex items-center justify-center h-full bg-pink-800 text-white text-2xl font-bold">
+                    {{ profile_user.username[0]|upper }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Profile actions -->
+            <div class="flex justify-end mb-16">
+                {% if g.user and g.user.user_id == profile_user.user_id %}
+                <a href="{{ url_for('edit_profile') }}" class="btn">Edit profile</a>
+                {% elif g.user %}
+                    {% if is_following %}
+                    <form action="{{ url_for('unfollow') }}" method="post">
+                        <input type="hidden" name="following_id" value="{{ profile_user.user_id }}">
+                        <button type="submit" class="bg-transparent border border-pink-600 text-pink-500 px-4 py-2 rounded-lg hover:bg-pink-700 hover:text-white transition">Unfollow</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('follow') }}" method="post">
+                        <input type="hidden" name="following_id" value="{{ profile_user.user_id }}">
+                        <button type="submit" class="btn">Follow</button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Profile details -->
+            <div>
+                <h1 class="text-2xl font-bold mb-1">{{ profile_user.username }}</h1>
+                <div class="text-gray-400 mb-4">@{{ profile_user.username }}</div>
+                
+                {% if profile_user.bio %}
+                <p class="mb-4">{{ profile_user.bio }}</p>
+                {% endif %}
+                
+                <div class="flex space-x-4 text-gray-400">
+                    <a href="{{ url_for('following', username=profile_user.username) }}" class="hover:underline">
+                        <span class="font-bold text-white">{{ following_count }}</span> Following
+                    </a>
+                    <a href="{{ url_for('followers', username=profile_user.username) }}" class="hover:underline">
+                        <span class="font-bold text-white">{{ follower_count }}</span> Followers
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tweets -->
+    <h2 class="text-xl font-bold mb-4">Tweets</h2>
+    <div class="space-y-4">
+        {% if tweets %}
+            {% for tweet in tweets %}
+            <div class="tweet-card">
+                <div class="flex items-center mb-2">
+                    <a href="{{ url_for('profile', username=tweet.username) }}" class="font-bold text-pink-500">@{{ tweet.username }}</a>
+                    <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+                </div>
+                <p class="mb-3">{{ tweet.content }}</p>
+                
+                <!-- Action buttons -->
+                <div class="flex justify-between text-gray-400 text-sm">
+                    <div class="flex space-x-4">
+                        <!-- View tweet/replies button -->
+                        <a href="{{ url_for('view_tweet', tweet_id=tweet.id) }}" class="flex items-center hover:text-blue-400">
+                            <i data-feather="message-circle" class="w-4 h-4 mr-1"></i>
+                            <span>{{ tweet.reply_count or 0 }}</span>
+                        </a>
+                        
+                        <!-- Like/Unlike button -->
+                        {% if g.user and db.is_post_liked(g.user.user_id, tweet.id) %}
+                        <form action="{{ url_for('unlike') }}" method="post" class="inline">
+                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                            <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
+                                <i data-feather="heart" class="w-4 h-4 mr-1 fill-current"></i>
+                                <span>{{ tweet.like_count or 0 }}</span>
+                            </button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('like') }}" method="post" class="inline">
+                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                            <button type="submit" class="flex items-center hover:text-pink-500">
+                                <i data-feather="heart" class="w-4 h-4 mr-1"></i>
+                                <span>{{ tweet.like_count or 0 }}</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    
+                    {% if tweet.thread_id %}
+                    <a href="{{ url_for('view_tweet', tweet_id=tweet.thread_id) }}" class="text-blue-400 hover:underline">View thread</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
+                <p class="text-gray-400">No tweets yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

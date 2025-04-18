@@ -1,0 +1,133 @@
+{% extends "layout.html" %}
+
+{% block title %}Search Results | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-8">
+        <form action="{{ url_for('search') }}" method="get" class="w-full">
+            <div class="flex">
+                <input type="text" name="q" value="{{ query }}" placeholder="Search for users or #hashtags" 
+                       class="w-full bg-gray-700 border border-gray-600 rounded-l-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+                <button type="submit" class="bg-pink-600 text-white px-4 py-2 rounded-r-lg hover:bg-pink-700">
+                    <i data-feather="search" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Search Results -->
+    {% if hashtag is defined %}
+        <h1 class="text-2xl font-bold mb-6">Tweets with #{{ hashtag }}</h1>
+        
+        <div class="space-y-4">
+            {% if tweets %}
+                {% for tweet in tweets %}
+                <div class="tweet-card">
+                    <div class="flex items-center mb-2">
+                        <a href="{{ url_for('profile', username=tweet.username) }}" class="font-bold text-pink-500">@{{ tweet.username }}</a>
+                        <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+                    </div>
+                    <p class="mb-3">{{ tweet.content }}</p>
+                    
+                    <!-- Action buttons -->
+                    <div class="flex justify-between text-gray-400 text-sm">
+                        <div class="flex space-x-4">
+                            <!-- Reply button -->
+                            <a href="{{ url_for('view_tweet', tweet_id=tweet.id) }}" class="flex items-center hover:text-blue-400">
+                                <i data-feather="message-circle" class="w-4 h-4 mr-1"></i>
+                                <span>{{ tweet.reply_count or 0 }}</span>
+                            </a>
+                            
+                            <!-- Like/Unlike button -->
+                            {% if g.user %}
+                                {% if db.is_post_liked(g.user.user_id, tweet.id) %}
+                                <form action="{{ url_for('unlike') }}" method="post" class="inline">
+                                    <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                                    <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
+                                        <i data-feather="heart" class="w-4 h-4 mr-1 fill-current"></i>
+                                        <span>{{ tweet.like_count or 0 }}</span>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('like') }}" method="post" class="inline">
+                                    <input type="hidden" name="post_id" value="{{ tweet.id }}">
+                                    <button type="submit" class="flex items-center hover:text-pink-500">
+                                        <i data-feather="heart" class="w-4 h-4 mr-1"></i>
+                                        <span>{{ tweet.like_count or 0 }}</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('login') }}" class="flex items-center hover:text-pink-500">
+                                    <i data-feather="heart" class="w-4 h-4 mr-1"></i>
+                                    <span>{{ tweet.like_count or 0 }}</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        
+                        {% if tweet.thread_id %}
+                        <a href="{{ url_for('view_tweet', tweet_id=tweet.thread_id) }}" class="text-blue-400 hover:underline">View thread</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
+                    <p class="text-gray-400">No tweets found with #{{ hashtag }}</p>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <h1 class="text-2xl font-bold mb-6">User search results for "{{ query }}"</h1>
+        
+        <div class="space-y-4">
+            {% if users %}
+                {% for user in users %}
+                <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                    <div class="flex items-center">
+                        <!-- Profile picture -->
+                        <div class="w-12 h-12 mr-4 bg-gray-700 rounded-full overflow-hidden">
+                            {% if user.profile_pic %}
+                            <img src="{{ url_for('static', filename=user.profile_pic) }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                            {% else %}
+                            <div class="flex items-center justify-center h-full bg-pink-800 text-white font-bold">
+                                {{ user.username[0]|upper }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- User info -->
+                        <div>
+                            <a href="{{ url_for('profile', username=user.username) }}" class="font-bold hover:underline">{{ user.username }}</a>
+                            {% if user.bio %}
+                            <p class="text-gray-400 text-sm truncate max-w-xs">{{ user.bio }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Follow/Unfollow button -->
+                    {% if g.user and g.user.user_id != user.user_id %}
+                        {% if db.is_following(g.user.user_id, user.user_id) %}
+                        <form action="{{ url_for('unfollow') }}" method="post">
+                            <input type="hidden" name="following_id" value="{{ user.user_id }}">
+                            <button type="submit" class="bg-transparent border border-gray-600 text-gray-300 px-3 py-1 rounded-lg hover:bg-gray-700 transition text-sm">Unfollow</button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('follow') }}" method="post">
+                            <input type="hidden" name="following_id" value="{{ user.user_id }}">
+                            <button type="submit" class="bg-pink-600 text-white px-3 py-1 rounded-lg hover:bg-pink-700 transition text-sm">Follow</button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
+                    <p class="text-gray-400">No users found matching "{{ query }}"</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

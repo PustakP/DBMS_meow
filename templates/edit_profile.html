@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Profile | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-pink-500 text-center">Edit Profile</h1>
+    
+    <form method="post" action="{{ url_for('edit_profile') }}" class="bg-gray-800 p-6 rounded-lg border border-gray-700" enctype="multipart/form-data">
+        <div class="mb-4">
+            <label for="username" class="block text-gray-300 mb-2">Username</label>
+            <input type="text" id="username" value="{{ user.username }}" disabled
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500 opacity-75">
+            <p class="text-sm text-gray-400 mt-1">Username cannot be changed</p>
+        </div>
+        
+        <div class="mb-4">
+            <label for="bio" class="block text-gray-300 mb-2">Bio</label>
+            <textarea id="bio" name="bio" rows="3"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">{{ user.bio or '' }}</textarea>
+        </div>
+        
+        <div class="mb-6">
+            <label for="profile_pic" class="block text-gray-300 mb-2">Profile Picture</label>
+            {% if user.profile_pic %}
+            <div class="mb-2">
+                <img src="{{ url_for('static', filename=user.profile_pic) }}" alt="Current profile picture" class="w-16 h-16 object-cover rounded-full">
+                <p class="text-sm text-gray-400 mt-1">Current profile picture</p>
+            </div>
+            {% endif %}
+            <input type="file" id="profile_pic" name="profile_pic" accept="image/*"
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        
+        <div class="flex justify-between">
+            <a href="{{ url_for('profile', username=user.username) }}" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Cancel</a>
+            <button type="submit" class="btn">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

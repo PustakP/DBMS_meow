@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ profile_user.username }} Following | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ url_for('profile', username=profile_user.username) }}" class="flex items-center text-gray-400 hover:text-white">
+            <i data-feather="arrow-left" class="w-5 h-5 mr-2"></i>
+            <span>Back to @{{ profile_user.username }}'s profile</span>
+        </a>
+    </div>
+    
+    <h1 class="text-2xl font-bold mb-6">People @{{ profile_user.username }} follows</h1>
+    
+    <div class="space-y-4">
+        {% if following %}
+            {% for user in following %}
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                <div class="flex items-center">
+                    <!-- Profile picture -->
+                    <div class="w-12 h-12 mr-4 bg-gray-700 rounded-full overflow-hidden">
+                        {% if user.profile_pic %}
+                        <img src="{{ url_for('static', filename=user.profile_pic) }}" alt="{{ user.username }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <div class="flex items-center justify-center h-full bg-pink-800 text-white font-bold">
+                            {{ user.username[0]|upper }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- User info -->
+                    <div>
+                        <a href="{{ url_for('profile', username=user.username) }}" class="font-bold hover:underline">{{ user.username }}</a>
+                        {% if user.bio %}
+                        <p class="text-gray-400 text-sm truncate max-w-xs">{{ user.bio }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Follow/Unfollow button -->
+                {% if g.user and g.user.user_id != user.user_id %}
+                    {% if db.is_following(g.user.user_id, user.user_id) %}
+                    <form action="{{ url_for('unfollow') }}" method="post">
+                        <input type="hidden" name="following_id" value="{{ user.user_id }}">
+                        <button type="submit" class="bg-transparent border border-gray-600 text-gray-300 px-3 py-1 rounded-lg hover:bg-gray-700 transition text-sm">Unfollow</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('follow') }}" method="post">
+                        <input type="hidden" name="following_id" value="{{ user.user_id }}">
+                        <button type="submit" class="bg-pink-600 text-white px-3 py-1 rounded-lg hover:bg-pink-700 transition text-sm">Follow</button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
+                <p class="text-gray-400">@{{ profile_user.username }} isn't following anyone yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

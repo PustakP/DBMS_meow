@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}Sign Up | PinkBird{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-pink-500 text-center">Join PinkBird today</h1>
+    
+    <form method="post" action="{{ url_for('register') }}" class="bg-gray-800 p-6 rounded-lg border border-gray-700" enctype="multipart/form-data">
+        <div class="mb-4">
+            <label for="username" class="block text-gray-300 mb-2">Username</label>
+            <input type="text" id="username" name="username" required
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        
+        <div class="mb-4">
+            <label for="email" class="block text-gray-300 mb-2">Email</label>
+            <input type="email" id="email" name="email" required
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        
+        <div class="mb-4">
+            <label for="password" class="block text-gray-300 mb-2">Password</label>
+            <input type="password" id="password" name="password" required
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        
+        <div class="mb-4">
+            <label for="bio" class="block text-gray-300 mb-2">Bio (optional)</label>
+            <textarea id="bio" name="bio" rows="3"
+                      class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500"></textarea>
+        </div>
+        
+        <div class="mb-6">
+            <label for="profile_pic" class="block text-gray-300 mb-2">Profile Picture (optional)</label>
+            <input type="file" id="profile_pic" name="profile_pic" accept="image/*"
+                   class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        
+        <button type="submit" class="btn w-full mb-4">Sign Up</button>
+        
+        <div class="text-center text-gray-400">
+            Already have an account? <a href="{{ url_for('login') }}" class="text-pink-500 hover:underline">Login</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

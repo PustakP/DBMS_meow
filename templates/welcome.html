@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block title %}Welcome to PinkBird{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row items-center justify-center md:space-x-12 max-w-6xl mx-auto">
+    <!-- Hero Section -->
+    <div class="mb-8 md:mb-0 w-full md:w-1/2">
+        <h1 class="text-5xl font-bold mb-4 text-pink-500">Welcome to PinkBird</h1>
+        <h2 class="text-2xl mb-6 text-gray-300">Join the conversation today</h2>
+        <p class="text-gray-400 mb-8">Connect with friends, share your thoughts, and discover what's happening right now in your world.</p>
+        <div class="space-y-4">
+            <a href="{{ url_for('register') }}" class="btn block text-center md:inline-block md:mr-4">Sign up</a>
+            <a href="{{ url_for('login') }}" class="block text-center md:inline-block bg-transparent border border-pink-600 text-pink-500 px-4 py-2 rounded-lg hover:bg-pink-700 hover:text-white transition">Log in</a>
+        </div>
+    </div>
+    
+    <!-- Illustration -->
+    <div class="w-full md:w-1/2">
+        <div class="bg-gray-800 p-8 rounded-lg border border-pink-700 shadow-xl">
+            <div class="tweet-card mb-4">
+                <div class="flex items-center mb-2">
+                    <div class="font-bold text-pink-500">@Nishitai3</div>
+                    <div class="ml-2 text-gray-400 text-sm">3h ago</div>
+                </div>
+                <p>Just found an amazing coffee place near work! #coffee</p>
+                <div class="flex mt-4 text-gray-400 text-sm space-x-4">
+                    <span><i data-feather="heart" class="w-4 h-4 inline"></i> 5 likes</span>
+                    <span><i data-feather="message-circle" class="w-4 h-4 inline"></i> 1 reply</span>
+                </div>
+            </div>
+            
+            <div class="tweet-card ml-12">
+                <div class="flex items-center mb-2">
+                    <div class="font-bold text-pink-500">@pustak_alt</div>
+                    <div class="ml-2 text-gray-400 text-sm">2h ago</div>
+                </div>
+                <p>That coffee place is my favorite too! #coffee</p>
+                <div class="flex mt-4 text-gray-400 text-sm space-x-4">
+                    <span><i data-feather="heart" class="w-4 h-4 inline"></i> 2 likes</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
