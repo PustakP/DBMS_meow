@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <form action="{{ url_for('post_tweet') }}" method="post" class="mb-8 bg-gray-800 p-4 rounded-lg">
+        <div class="mb-4">
+            <input type="text" name="user" placeholder="Username" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500">
+        </div>
+        <div class="mb-4">
+            <textarea name="content" placeholder="What's happening?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500"></textarea>
+        </div>
+        <button type="submit" class="btn">Tweet</button>
+    </form>
+
+    <div class="space-y-4">
+        {% for tweet in tweets %}
+        <div class="tweet-card">
+            <div class="flex items-center mb-2">
+                <div class="font-bold text-pink-500">{{ tweet.user }}</div>
+                <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at }}</div>
+            </div>
+            <p>{{ tweet.content }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

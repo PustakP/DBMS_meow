@@ -1,0 +1,14 @@
+{
+  "name": "pinkbird",
+  "version": "1.0.0",
+  "description": "PinkBird Twitter clone",
+  "scripts": {
+    "build-css": "tailwindcss -i ./static/css/tailwind.src.css -o ./static/css/tailwind.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.3.5"
+  }
+} 

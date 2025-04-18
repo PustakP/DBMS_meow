@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You are an expert in Python, Flask, SQL, and basic web UI/UX.
+These rules define coding standards and project structure for the “PinkBird” Twitter‑clone (simplified).
+Refer to [setup.sql](mdc:setup.sql) to check how database is made and make project accordingly
+
+## 1. Project Overview
+- **Name:** PinkBird  
+- **Stack:** Python 3.10+, Flask, Jinja2 templates, Tailwind CSS (dark mode, pink accents), SQLite or MySQL
+
+## 2. Key Principles
+- **Keep it simple:** Minimal setup, no production optimizations or advanced libraries (e.g., no Gunicorn, caching, CI).
+- **Descriptive Naming:** Use `snake_case` for files, variables, and functions.
+- **Lightweight:** Favor straightforward functions over complex patterns; type hints optional.
+- **Early Returns:** Handle invalid inputs first, then proceed with main logic.
+
+## 3. Project Structure
+```
+pinkbird/
+├── templates/
+│   ├── layout.html
+│   ├── index.html
+│   ├── tweet.html
+│   └── profile.html
+├── static/
+│   └── css/
+│       └── tailwind.css
+├── db.py          # All database interactions
+└── main.py        # Flask routes and app setup
+```
+
+## 4. Flask App (`main.py`)
+```python
+from flask import Flask, render_template, request, redirect, url_for
+import db
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    tweets = db.get_all_tweets()
+    return render_template('index.html', tweets=tweets)
+
+@app.route('/tweet', methods=['POST'])
+def post_tweet():
+    user = request.form['user']
+    content = request.form['content']
+    db.publish_tweet(user, content)
+    return redirect(url_for('index'))
+
+# Add routes for replies, threads, profiles, follow/unfollow similarly
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+## 5. Database Layer (`db.py`)
+```python
+import sqlite3
+from typing import List, Dict
+
+def get_conn():
+    conn = sqlite3.connect('pinkbird.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def get_all_tweets() -> List[Dict]:
+    conn = get_conn()
+    rows = conn.execute(
+        'SELECT id, user, content, created_at FROM tweets ORDER BY created_at DESC'
+    ).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def publish_tweet(user: str, content: str) -> None:
+    conn = get_conn()
+    conn.execute(
+        'INSERT INTO tweets (user, content) VALUES (?, ?)',
+        (user, content)
+    )
+    conn.commit()
+    conn.close()
+
+# Define reply_to_tweet, create_thread, follow_user, unfollow_user similarly
+```
+
+## 6. UI & Styling
+- **Dark Mode Base:** `<html class="dark">`  
+- **Pink Accents:** Use `text-pink-500`, `bg-pink-700`, `hover:bg-pink-600`.  
+- **Rounded Corners:** `rounded-lg` on cards, buttons, and inputs.  
+- **Simple Layout:** Tailwind’s flex and grid utilities; mobile‑first design.
+
+---
+
+Feel free to extend DB functions, add more templates and Flask routes as needed, but keep the design minimal and the code easy to follow.
+
+Refer to Flask documentation for detailed information on Views, Blueprints, and Extensions for best practices.
