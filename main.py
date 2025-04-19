@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
-import db
+import db as db
 import functools
 import os
 from werkzeug.utils import secure_filename
@@ -11,6 +11,11 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Make db module available to all templates
+@app.context_processor
+def inject_db():
+    return dict(db=db)
 
 # Authentication decorator
 def login_required(view):
