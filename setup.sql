@@ -10,7 +10,6 @@ CREATE TABLE user (
     bio TEXT,
     profile_pic VARCHAR(255)
 );
-CREATE TABLE IF NOT EXISTS user_auth (user_id VARCHAR(36), password_hash VARCHAR(255), PRIMARY KEY (user_id), FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE);
 
 -- Post Table
 CREATE TABLE post (
@@ -378,5 +377,3 @@ INSERT INTO likes (user_id, post_id) VALUES
 
 INSERT INTO hasmedia (post_id, media_id) VALUES
 (1, 1), (2, 2);
-
-

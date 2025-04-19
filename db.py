@@ -15,74 +15,6 @@ def get_conn():
     )
     return conn
 
-# check and fix hashtag trigger
-def check_hashtag_trigger():
-    conn = get_conn()
-    cursor = conn.cursor()
-    
-    # Check if trigger exists
-    cursor.execute("""
-        SELECT TRIGGER_NAME 
-        FROM information_schema.TRIGGERS 
-        WHERE TRIGGER_SCHEMA = 'pinkbird' 
-        AND TRIGGER_NAME = 'extract_hashtags'
-    """)
-    
-    if not cursor.fetchone():
-        # Trigger doesn't exist, create it
-        cursor.execute("""
-            DELIMITER //
-            CREATE TRIGGER extract_hashtags AFTER INSERT ON post
-            FOR EACH ROW
-            BEGIN
-                DECLARE hashtag_text VARCHAR(50);
-                DECLARE content_copy TEXT;
-                DECLARE space_pos INT;
-                DECLARE hashtag_id_val INT;
-                
-                -- copy content for processing
-                SET content_copy = CONCAT(' ', NEW.content, ' ');
-                
-                -- find hashtags - simple extraction logic
-                WHILE content_copy REGEXP '#[a-zA-Z0-9_]+' DO
-                    -- extract the hashtag
-                    SET hashtag_text = SUBSTRING_INDEX(SUBSTRING_INDEX(content_copy, '#', 2), ' ', -1);
-                    
-                    -- trim any punctuation that might follow the hashtag
-                    SET space_pos = LOCATE(' ', hashtag_text);
-                    IF space_pos > 0 THEN
-                        SET hashtag_text = SUBSTRING(hashtag_text, 1, space_pos - 1);
-                    END IF;
-                    
-                    -- clean up hashtag text by removing '#'
-                    SET hashtag_text = TRIM(REPLACE(hashtag_text, '#', ''));
-                    
-                    -- if hashtag exists, get its id
-                    IF hashtag_text != '' THEN
-                        -- insert hashtag if it doesn't exist
-                        INSERT IGNORE INTO hashtag (name) VALUES (hashtag_text);
-                        
-                        -- get the hashtag id
-                        SELECT hashtag_id INTO hashtag_id_val FROM hashtag WHERE name = hashtag_text LIMIT 1;
-                        
-                        -- link post to hashtag
-                        INSERT IGNORE INTO contains (post_id, hashtag_id) VALUES (NEW.post_id, hashtag_id_val);
-                    END IF;
-                    
-                    -- remove processed hashtag from content copy to avoid infinite loop
-                    SET content_copy = REPLACE(content_copy, CONCAT('#', hashtag_text), '');
-                END WHILE;
-            END //
-            DELIMITER ;
-        """)
-        conn.commit()
-    
-    cursor.close()
-    conn.close()
-
-# Initialize trigger on module import
-check_hashtag_trigger()
-
 # create a new user
 # cnu - create new user
 def create_user(username: str, email: str, password: str, bio: str = None, profile_pic: str = None) -> Tuple[bool, str]:
@@ -319,46 +251,18 @@ def publish_tweet(user_id: str, content: str, thread_id: int = None) -> int:
     conn = get_conn()
     cursor = conn.cursor()
     
-    try:
-        # call the stored procedure
-        cursor.callproc('publish_tweet', (user_id, content, thread_id))
-        
-        # get result
-        post_id = None
-        for result in cursor.stored_results():
-            post_id = result.fetchone()[0]
-        
-        # Extract hashtags manually if trigger failed
-        hashtags = [word[1:] for word in content.split() if word.startswith('#')]
-        for hashtag in hashtags:
-            # Clean hashtag
-            hashtag = ''.join(c for c in hashtag if c.isalnum() or c == '_')
-            if hashtag:
-                # Insert hashtag if it doesn't exist
-                cursor.execute(
-                    'INSERT IGNORE INTO hashtag (name) VALUES (%s)',
-                    (hashtag,)
-                )
-                # Get hashtag id
-                cursor.execute(
-                    'SELECT hashtag_id FROM hashtag WHERE name = %s',
-                    (hashtag,)
-                )
-                hashtag_id = cursor.fetchone()[0]
-                # Link post to hashtag
-                cursor.execute(
-                    'INSERT IGNORE INTO contains (post_id, hashtag_id) VALUES (%s, %s)',
-                    (post_id, hashtag_id)
-                )
-        
-        conn.commit()
-        return post_id
-    except Exception as e:
-        conn.rollback()
-        raise e
-    finally:
-        cursor.close()
-        conn.close()
+    # call the stored procedure
+    cursor.callproc('publish_tweet', (user_id, content, thread_id))
+    
+    # get result
+    post_id = None
+    for result in cursor.stored_results():
+        post_id = result.fetchone()[0]
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return post_id
 
 # search tweets by hashtag
 # stbh - search tweets by hashtag
@@ -368,13 +272,12 @@ def search_tweets_by_hashtag(hashtag: str) -> List[Dict]:
     cursor.execute(
         '''SELECT p.post_id as id, p.user_id as user_id, u.username as username, 
            p.content, p.created_at, p.thread_id,
-           (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as like_count,
-           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count
+           (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as like_count
            FROM post p
            JOIN user u ON p.user_id = u.user_id
            JOIN contains c ON p.post_id = c.post_id
            JOIN hashtag h ON c.hashtag_id = h.hashtag_id
-           WHERE LOWER(h.name) = LOWER(%s)
+           WHERE h.name = %s
            ORDER BY p.created_at DESC''',
         (hashtag,)
     )
@@ -391,7 +294,7 @@ def search_users(query: str) -> List[Dict]:
     cursor.execute(
         '''SELECT user_id, username, email, bio, profile_pic
            FROM user
-           WHERE LOWER(username) LIKE LOWER(%s) OR LOWER(email) LIKE LOWER(%s)
+           WHERE username LIKE %s OR email LIKE %s
            LIMIT 20''',
         (f'%{query}%', f'%{query}%')
     )
@@ -399,27 +302,6 @@ def search_users(query: str) -> List[Dict]:
     cursor.close()
     conn.close()
     return users
-
-# search tweets by content
-# stbc - search tweets by content
-def search_tweets_by_content(query: str) -> List[Dict]:
-    conn = get_conn()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        '''SELECT p.post_id as id, p.user_id as user_id, u.username as username, 
-           p.content, p.created_at, p.thread_id,
-           (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as like_count,
-           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count
-           FROM post p
-           JOIN user u ON p.user_id = u.user_id
-           WHERE LOWER(p.content) LIKE LOWER(%s)
-           ORDER BY p.created_at DESC''',
-        (f'%{query}%',)
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return rows
 
 # follow a user
 # fau - follow a user

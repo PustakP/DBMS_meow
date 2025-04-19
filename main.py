@@ -12,11 +12,6 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Make db module available to all templates
-@app.context_processor
-def inject_db():
-    return dict(db=db)
-
 # Authentication decorator
 def login_required(view):
     @functools.wraps(view)
@@ -218,25 +213,17 @@ def view_tweet(tweet_id):
 # Search route
 @app.route('/search')
 def search():
-    query = request.args.get('q', '').strip()
-    
-    if not query:
-        return redirect(url_for('explore'))
+    query = request.args.get('q', '')
     
     if query.startswith('#'):
         # Search for hashtag
         hashtag = query[1:]
         tweets = db.search_tweets_by_hashtag(hashtag)
         return render_template('search_results.html', query=query, tweets=tweets, hashtag=hashtag)
-    elif query.startswith('@'):
-        # Search for users
-        username = query[1:]
-        users = db.search_users(username)
-        return render_template('search_results.html', query=query, users=users)
     else:
-        # Search for tweets by content
-        tweets = db.search_tweets_by_content(query)
-        return render_template('search_results.html', query=query, tweets=tweets)
+        # Search for users
+        users = db.search_users(query)
+        return render_template('search_results.html', query=query, users=users)
 
 # follow a user 
 @app.route('/follow', methods=['POST'])
