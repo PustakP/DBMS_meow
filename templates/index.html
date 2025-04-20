@@ -4,71 +4,70 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
-    <!-- Tweet form -->
-    <form action="{{ url_for('post_tweet') }}" method="post" class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <div class="mb-4">
-            <textarea name="content" placeholder="What's happening?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" rows="3"></textarea>
-        </div>
-        <div class="flex justify-between items-center">
-            <div class="text-gray-400 text-sm">
-                <i data-feather="image" class="w-4 h-4 inline"></i> Image feature coming soon
-            </div>
-            <button type="submit" class="btn">Tweet</button>
-        </div>
-    </form>
-
-    <!-- Tweets -->
-    <div class="space-y-4">
-        {% if tweets %}
-            {% for tweet in tweets %}
-            <div class="tweet-card">
-                <div class="flex items-center mb-2">
-                    <a href="{{ url_for('profile', username=tweet.username) }}" class="font-bold text-pink-500">@{{ tweet.username }}</a>
-                    <div class="ml-2 text-gray-400 text-sm">{{ tweet.created_at.strftime('%b %d, %Y · %I:%M %p') }}</div>
+    {% if g.user %}
+        <!-- Tweet form -->
+        <div class="mb-8 bg-gray-800 p-4 rounded-lg border border-gray-700">
+            <form action="{{ url_for('post_tweet') }}" method="post" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <textarea name="content" placeholder="What's happening?" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:border-pink-500" rows="3"></textarea>
                 </div>
-                <p class="mb-3">{{ tweet.content }}</p>
-                
-                <!-- Action buttons -->
-                <div class="flex justify-between text-gray-400 text-sm">
-                    <div class="flex space-x-4">
-                        <!-- Reply button -->
-                        <a href="{{ url_for('view_tweet', tweet_id=tweet.id) }}" class="flex items-center hover:text-blue-400">
-                            <i data-feather="message-circle" class="w-4 h-4 mr-1"></i>
-                            <span>{{ tweet.reply_count or 0 }}</span>
-                        </a>
-                        
-                        <!-- Like/Unlike button -->
-                        {% if g.user and db.is_post_liked(g.user.user_id, tweet.id) %}
-                        <form action="{{ url_for('unlike') }}" method="post" class="inline">
-                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
-                            <button type="submit" class="flex items-center text-pink-500 hover:text-pink-600">
-                                <i data-feather="heart" class="w-4 h-4 mr-1 fill-current"></i>
-                                <span>{{ tweet.like_count or 0 }}</span>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <label class="cursor-pointer">
+                            <input type="file" name="image" accept="image/*" class="hidden" onchange="previewImage(event)">
+                            <i data-feather="image" class="w-6 h-6 text-pink-500 hover:text-pink-600"></i>
+                        </label>
+                        <div id="image-preview" class="ml-2 hidden">
+                            <img src="" alt="Preview" class="h-10 w-10 object-cover rounded">
+                            <button type="button" onclick="removeImage()" class="ml-1 text-gray-400 hover:text-gray-300">
+                                <i data-feather="x" class="w-4 h-4"></i>
                             </button>
-                        </form>
-                        {% else %}
-                        <form action="{{ url_for('like') }}" method="post" class="inline">
-                            <input type="hidden" name="post_id" value="{{ tweet.id }}">
-                            <button type="submit" class="flex items-center hover:text-pink-500">
-                                <i data-feather="heart" class="w-4 h-4 mr-1"></i>
-                                <span>{{ tweet.like_count or 0 }}</span>
-                            </button>
-                        </form>
-                        {% endif %}
+                        </div>
                     </div>
-                    
-                    {% if tweet.thread_id %}
-                    <a href="{{ url_for('view_tweet', tweet_id=tweet.thread_id) }}" class="text-blue-400 hover:underline">View thread</a>
-                    {% endif %}
+                    <button type="submit" class="btn">Tweet</button>
                 </div>
-            </div>
+            </form>
+        </div>
+        
+        <!-- Feed -->
+        <div class="space-y-4">
+            {% for tweet in tweets %}
+                {% include 'tweet_card.html' %}
             {% endfor %}
-        {% else %}
-            <div class="bg-gray-800 p-6 rounded-lg border border-gray-700 text-center">
-                <p class="mb-4 text-gray-400">Your feed is empty! Start by following some users or posting your first tweet.</p>
-                <a href="{{ url_for('explore') }}" class="btn">Explore PinkBird</a>
+        </div>
+    {% else %}
+        <div class="text-center py-8">
+            <h1 class="text-3xl font-bold mb-4">Welcome to PinkBird</h1>
+            <p class="text-gray-400 mb-6">Join the conversation today.</p>
+            <div class="space-x-4">
+                <a href="{{ url_for('login') }}" class="btn">Log in</a>
+                <a href="{{ url_for('register') }}" class="btn-secondary">Sign up</a>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 </div>
+
+<!-- Image preview script -->
+<script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('image-preview');
+            preview.querySelector('img').src = e.target.result;
+            preview.classList.remove('hidden');
+        }
+        reader.readAsDataURL(file);
+    }
+}
+
+function removeImage() {
+    const input = document.querySelector('input[type="file"]');
+    const preview = document.getElementById('image-preview');
+    input.value = '';
+    preview.classList.add('hidden');
+    preview.querySelector('img').src = '';
+}
+</script>
 {% endblock %} 

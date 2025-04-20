@@ -8,9 +8,15 @@ app = Flask(__name__)
 app.secret_key = 'pinkbird_secret_key'  # needed for flash messages
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
+app.config['ALLOWED_IMAGE_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Helper function to check allowed file extensions
+def allowed_image_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_IMAGE_EXTENSIONS']
 
 # Make db module available to all templates
 @app.context_processor
@@ -189,8 +195,22 @@ def post_tweet():
     if thread_id:
         thread_id = int(thread_id)
     
+    # Handle image upload
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '' and allowed_image_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            image_url = 'uploads/' + filename
+    
     # call the db function which uses the stored procedure
     post_id = db.publish_tweet(g.user['user_id'], content, thread_id)
+    
+    # If we have an image, add it to the media table and link it to the post
+    if image_url:
+        db.add_media_to_post(post_id, image_url, 'image')
     
     if thread_id:
         return redirect(url_for('view_tweet', tweet_id=thread_id))

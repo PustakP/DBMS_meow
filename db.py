@@ -203,14 +203,26 @@ def get_all_tweets() -> List[Dict]:
         '''SELECT p.post_id as id, p.user_id as user_id, u.username as username, 
            p.content, p.created_at, p.thread_id,
            (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as like_count,
-           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count
+           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count,
+           GROUP_CONCAT(DISTINCT m.file_url) as media_urls
            FROM post p
            JOIN user u ON p.user_id = u.user_id
+           LEFT JOIN hasmedia h ON p.post_id = h.post_id
+           LEFT JOIN media m ON h.media_id = m.media_id
+           GROUP BY p.post_id
            ORDER BY p.created_at DESC'''
     )
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
+    
+    # Convert media_urls from string to list
+    for row in rows:
+        if row['media_urls']:
+            row['media_urls'] = row['media_urls'].split(',')
+        else:
+            row['media_urls'] = []
+    
     return rows
 
 # get tweets from followed users
@@ -222,18 +234,30 @@ def get_feed_tweets(user_id: str) -> List[Dict]:
         '''SELECT p.post_id as id, p.user_id as user_id, u.username as username, 
            p.content, p.created_at, p.thread_id,
            (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as like_count,
-           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count
+           (SELECT COUNT(*) FROM replies WHERE post_id = p.post_id) as reply_count,
+           GROUP_CONCAT(DISTINCT m.file_url) as media_urls
            FROM post p
            JOIN user u ON p.user_id = u.user_id
+           LEFT JOIN hasmedia h ON p.post_id = h.post_id
+           LEFT JOIN media m ON h.media_id = m.media_id
            WHERE p.user_id IN (
                SELECT following_id FROM follows WHERE follower_id = %s
            ) OR p.user_id = %s
+           GROUP BY p.post_id
            ORDER BY p.created_at DESC''',
         (user_id, user_id)
     )
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
+    
+    # Convert media_urls from string to list
+    for row in rows:
+        if row['media_urls']:
+            row['media_urls'] = row['media_urls'].split(',')
+        else:
+            row['media_urls'] = []
+    
     return rows
 
 # get user's tweets
@@ -392,8 +416,15 @@ def search_users(query: str) -> List[Dict]:
         '''SELECT user_id, username, email, bio, profile_pic
            FROM user
            WHERE LOWER(username) LIKE LOWER(%s) OR LOWER(email) LIKE LOWER(%s)
+           ORDER BY 
+               CASE 
+                   WHEN LOWER(username) = LOWER(%s) THEN 1
+                   WHEN LOWER(username) LIKE LOWER(%s) THEN 2
+                   ELSE 3
+               END,
+               username
            LIMIT 20''',
-        (f'%{query}%', f'%{query}%')
+        (f'%{query}%', f'%{query}%', query, f'{query}%')
     )
     users = cursor.fetchall()
     cursor.close()
@@ -592,3 +623,51 @@ def is_following(follower_id: str, following_id: str) -> bool:
     cursor.close()
     conn.close()
     return is_following
+
+# add media to post
+# amp - add media to post
+def add_media_to_post(post_id: int, file_url: str, media_type: str) -> bool:
+    conn = get_conn()
+    cursor = conn.cursor()
+    
+    try:
+        # Insert into media table
+        cursor.execute(
+            'INSERT INTO media (file_url, media_type) VALUES (%s, %s)',
+            (file_url, media_type)
+        )
+        media_id = cursor.lastrowid
+        
+        # Link media to post
+        cursor.execute(
+            'INSERT INTO hasmedia (post_id, media_id) VALUES (%s, %s)',
+            (post_id, media_id)
+        )
+        
+        conn.commit()
+        return True
+    except Exception as e:
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+# get media for post
+# gmp - get media for post
+def get_media_for_post(post_id: int) -> List[Dict]:
+    conn = get_conn()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute(
+        '''SELECT m.media_id, m.file_url, m.media_type
+           FROM media m
+           JOIN hasmedia h ON m.media_id = h.media_id
+           WHERE h.post_id = %s''',
+        (post_id,)
+    )
+    
+    media = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return media
