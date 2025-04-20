@@ -218,17 +218,25 @@ def view_tweet(tweet_id):
 # Search route
 @app.route('/search')
 def search():
-    query = request.args.get('q', '')
+    query = request.args.get('q', '').strip()
+    
+    if not query:
+        return redirect(url_for('explore'))
     
     if query.startswith('#'):
         # Search for hashtag
         hashtag = query[1:]
         tweets = db.search_tweets_by_hashtag(hashtag)
         return render_template('search_results.html', query=query, tweets=tweets, hashtag=hashtag)
-    else:
+    elif query.startswith('@'):
         # Search for users
-        users = db.search_users(query)
+        username = query[1:]
+        users = db.search_users(username)
         return render_template('search_results.html', query=query, users=users)
+    else:
+        # Search for tweets by content
+        tweets = db.search_tweets_by_content(query)
+        return render_template('search_results.html', query=query, tweets=tweets)
 
 # follow a user 
 @app.route('/follow', methods=['POST'])
