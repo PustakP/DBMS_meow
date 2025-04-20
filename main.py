@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
-import db
+import db as db
 import functools
 import os
 from werkzeug.utils import secure_filename
